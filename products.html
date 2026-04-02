@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Products | Geek Store</title>
+  <meta name="description" content="Browse Geek Store products with cleaner search, filtering, saved items, and a consistent cart and checkout flow.">
+  <meta name="theme-color" content="#07111f">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="theme.css">
+</head>
+<body data-page="products">
+  <a class="skip-link" href="#main-content">Skip to content</a>
+
+  <header class="site-header">
+    <div class="container nav-bar">
+      <a class="brand" href="Index.html">
+        <span class="brand-mark">GS</span>
+        <span class="brand-copy">
+          <span class="brand-title">Geek Store</span>
+          <span class="brand-subtitle">Retro gear with a polished finish</span>
+        </span>
+      </a>
+      <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="site-nav">Menu</button>
+      <div class="nav-menu" id="site-nav" data-nav-menu>
+        <nav class="nav-links" aria-label="Primary navigation">
+          <a class="nav-link" href="Index.html">Home</a>
+          <a class="nav-link" href="products.html">Products</a>
+          <a class="nav-link" href="about.html">About</a>
+          <a class="nav-link" href="contact.html">Contact</a>
+        </nav>
+        <div class="nav-actions">
+          <a class="action-link" href="wishlist.html">Saved <span class="count-pill wishlist-count">0</span></a>
+          <a class="action-link primary" href="cart.html">Cart <span class="count-pill cart-count">0</span></a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-main" id="main-content">
+    <section class="page-hero">
+      <div class="container">
+        <span class="eyebrow">Full collection</span>
+        <h1 class="section-title">Browse with better filters, cleaner cards, and quick-save controls.</h1>
+        <p class="lead">The product catalog now shares one data source with the cart, wishlist, and checkout flow, so the experience stays consistent from first click to final payment.</p>
+      </div>
+    </section>
+
+    <section class="page-section tight">
+      <div class="container">
+        <div class="catalog-toolbar">
+          <div class="search-row">
+            <input class="search-input" id="product-search" type="search" placeholder="Search by product or use case">
+            <select class="select-input" id="product-sort" aria-label="Sort products">
+              <option value="featured">Sort: Featured</option>
+              <option value="price-low">Sort: Price low to high</option>
+              <option value="price-high">Sort: Price high to low</option>
+              <option value="name">Sort: Name</option>
+            </select>
+          </div>
+          <div class="filter-row" aria-label="Product categories">
+            <button class="filter-button is-active" type="button" data-category-filter="all">All</button>
+            <button class="filter-button" type="button" data-category-filter="consoles">Consoles</button>
+            <button class="filter-button" type="button" data-category-filter="arcade">Arcade</button>
+            <button class="filter-button" type="button" data-category-filter="controllers">Controllers</button>
+            <button class="filter-button" type="button" data-category-filter="collectibles">Collectibles</button>
+          </div>
+        </div>
+        <div class="catalog-grid" id="products-grid"></div>
+      </div>
+    </section>
+
+    <section class="page-section">
+      <div class="container trust-strip">
+        <article class="trust-card reveal">
+          <strong>Save before you decide</strong>
+          <p class="muted">Use the saved-items flow to build a shortlist, compare later, and move products into the cart when you are ready.</p>
+        </article>
+        <article class="trust-card reveal">
+          <strong>Variant-safe cart data</strong>
+          <p class="muted">Product variants now use stable identifiers behind the scenes, which removes the old name-matching checkout problems.</p>
+        </article>
+        <article class="trust-card reveal">
+          <strong>Better recovery flow</strong>
+          <p class="muted">If you cancel a payment, the site keeps your cart intact so you can retry without rebuilding it.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="page-section">
+      <div class="container">
+        <div class="section-head compact">
+          <span class="kicker">Community reviews</span>
+          <h2 class="section-title">Shoppers can now leave feedback directly on the storefront.</h2>
+        </div>
+        <div class="review-grid" id="reviews-grid"></div>
+
+        <div class="surface form-panel review-form reveal">
+          <h2>Leave a review</h2>
+          <p class="muted">Reviews are stored locally in your browser so you can preview the experience right away.</p>
+          <form id="review-form">
+            <div class="form-grid">
+              <div class="field">
+                <label for="review-name">Name</label>
+                <input id="review-name" name="name" type="text" required>
+              </div>
+              <div class="field">
+                <label for="review-title">Headline</label>
+                <input id="review-title" name="title" type="text" placeholder="What stood out most?">
+              </div>
+              <div class="field">
+                <label for="review-rating">Rating</label>
+                <select id="review-rating" name="rating">
+                  <option value="5">5/5</option>
+                  <option value="4">4/5</option>
+                  <option value="3">3/5</option>
+                  <option value="2">2/5</option>
+                  <option value="1">1/5</option>
+                </select>
+              </div>
+              <div class="field full">
+                <label for="review-text">Review</label>
+                <textarea id="review-text" name="text" required placeholder="Describe the product, the site experience, or what made you trust the purchase."></textarea>
+              </div>
+            </div>
+            <div class="button-row">
+              <button class="button primary" type="submit">Submit review</button>
+            </div>
+            <div id="review-status" class="status-note"></div>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="brand">
+            <span class="brand-mark">GS</span>
+            <span class="brand-copy">
+              <span class="brand-title">Geek Store</span>
+              <span class="brand-subtitle">Retro gear with a polished finish</span>
+            </span>
+          </div>
+          <p class="muted">A tighter, more reliable storefront for retro handhelds, small arcade pieces, and setup accessories.</p>
+        </div>
+        <div class="footer-links">
+          <strong>Browse</strong>
+          <a href="Index.html">Home</a>
+          <a href="products.html">Products</a>
+          <a href="wishlist.html">Saved items</a>
+          <a href="cart.html">Cart</a>
+        </div>
+        <div class="footer-links">
+          <strong>Company</strong>
+          <a href="about.html">About</a>
+          <a href="contact.html">Contact</a>
+          <a href="Index.html#faq">FAQ</a>
+        </div>
+        <div class="footer-links">
+          <strong>Support</strong>
+          <a href="mailto:chahine.daha@gmail.com">chahine.daha@gmail.com</a>
+          <a href="tel:0612981181">06 12 98 11 81</a>
+          <span class="muted">Secure payments through Stripe</span>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>Copyright <span data-current-year></span> Geek Store. All rights reserved.</span>
+        <span>Catalog, cart, wishlist, and checkout now stay in sync.</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="site.js"></script>
+</body>
+</html>

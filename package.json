@@ -1,0 +1,20 @@
+{
+  "name": "geek-store",
+  "version": "1.0.0",
+  "description": "Professional retro gaming storefront with shared UI state and Stripe checkout",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.22.1",
+    "nodemailer": "^6.9.8",
+    "stripe": "^14.25.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
