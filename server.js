@@ -7,10 +7,20 @@ const path = require("path");
 const nodemailer = require("nodemailer");
 const Stripe = require("stripe");
 
-const PORT = Number(process.env.PORT || 3001);
+const ENV = {
+  port: readEnv("PORT") || "3001",
+  stripeSecretKey: readEnv("STRIPE_SECRET_KEY"),
+  stripeWebhookSecret: readEnv("STRIPE_WEBHOOK_SECRET"),
+  publicBaseUrl: readEnv("PUBLIC_BASE_URL"),
+  emailUser: readEnv("EMAIL_USER"),
+  emailPass: readEnv("EMAIL_PASS"),
+  contactEmail: readEnv("CONTACT_EMAIL")
+};
+
+const PORT = Number(ENV.port || 3001);
 const STATIC_DIR = path.join(__dirname, "public");
-const stripe = process.env.STRIPE_SECRET_KEY
-  ? new Stripe(process.env.STRIPE_SECRET_KEY)
+const stripe = ENV.stripeSecretKey
+  ? new Stripe(ENV.stripeSecretKey)
   : null;
 
 const app = express();
@@ -99,12 +109,12 @@ const PRODUCT_CATALOG = {
 const aliasLookup = buildAliasLookup(PRODUCT_CATALOG);
 
 const transporter =
-  process.env.EMAIL_USER && process.env.EMAIL_PASS
+  ENV.emailUser && ENV.emailPass
     ? nodemailer.createTransport({
         service: "gmail",
         auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS
+          user: ENV.emailUser,
+          pass: ENV.emailPass
         }
       })
     : null;
@@ -155,9 +165,9 @@ app.post("/api/contact", async (req, res) => {
 
   try {
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+      from: ENV.emailUser,
       replyTo: email,
-      to: process.env.CONTACT_EMAIL || process.env.EMAIL_USER,
+      to: ENV.contactEmail || ENV.emailUser,
       subject: `[Geek Store] ${subject}`,
       html: `
         <h2>New contact request</h2>
@@ -222,7 +232,7 @@ if (require.main === module) {
 module.exports = app;
 
 async function handleStripeWebhook(req, res) {
-  if (!stripe || !process.env.STRIPE_WEBHOOK_SECRET) {
+  if (!stripe || !ENV.stripeWebhookSecret) {
     return res.status(503).json({
       error: "Stripe webhook support is not configured on this server."
     });
@@ -235,7 +245,7 @@ async function handleStripeWebhook(req, res) {
     event = stripe.webhooks.constructEvent(
       req.body,
       signature,
-      process.env.STRIPE_WEBHOOK_SECRET
+      ENV.stripeWebhookSecret
     );
   } catch (error) {
     return res.status(400).send(`Webhook error: ${error.message}`);
@@ -261,6 +271,7 @@ async function createCheckoutSession(req, res) {
   }
 
   try {
+    const selectedProducts = [];
     const lineItems = items.map((item) => {
       const product = resolveProduct(item && (item.id || item.name));
       if (!product || !product.priceId) {
@@ -268,6 +279,7 @@ async function createCheckoutSession(req, res) {
       }
 
       const quantity = clamp(Number(item.quantity || 1), 1, 20);
+      selectedProducts.push(`${product.id}:${quantity}`);
       return {
         price: product.priceId,
         quantity
@@ -278,6 +290,9 @@ async function createCheckoutSession(req, res) {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: lineItems,
+      metadata: {
+        product_ids: selectedProducts.join(",")
+      },
       billing_address_collection: "auto",
       customer_creation: "always",
       shipping_address_collection: {
@@ -289,7 +304,12 @@ async function createCheckoutSession(req, res) {
 
     res.json({ url: session.url });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    const statusCode =
+      error && (error.type || "").startsWith("Stripe")
+        ? 502
+        : 400;
+    console.log(`Stripe checkout error: ${error.message}`);
+    res.status(statusCode).json({ error: error.message });
   }
 }
 
@@ -371,8 +391,8 @@ function clamp(value, min, max) {
 }
 
 function getBaseUrl(req) {
-  if (process.env.PUBLIC_BASE_URL) {
-    return process.env.PUBLIC_BASE_URL.replace(/\/$/, "");
+  if (ENV.publicBaseUrl) {
+    return ENV.publicBaseUrl.replace(/\/$/, "");
   }
 
   if (req.headers.origin) {
@@ -401,7 +421,7 @@ async function sendOrderConfirmation(session) {
 
   try {
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+      from: ENV.emailUser,
       to: session.customer_details.email,
       subject: "Your Geek Store order is confirmed",
       html: `
@@ -413,7 +433,7 @@ async function sendOrderConfirmation(session) {
           <li><strong>Total:</strong> EUR ${total.toFixed(2)}</li>
         </ul>
         <p>If you need anything, reply to this email or contact ${escapeHtml(
-          process.env.CONTACT_EMAIL || process.env.EMAIL_USER || "Geek Store support"
+          ENV.contactEmail || ENV.emailUser || "Geek Store support"
         )}.</p>
       `
     });
@@ -429,4 +449,19 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function readEnv(name) {
+  const rawValue = process.env[name];
+  if (typeof rawValue !== "string") {
+    return "";
+  }
+
+  const cleaned = rawValue.replace(/\r?\n/g, "").trim();
+  if (!cleaned) {
+    return "";
+  }
+
+  const quotedMatch = cleaned.match(/^(['"])(.*)\1$/);
+  return quotedMatch ? quotedMatch[2].trim() : cleaned;
 }
