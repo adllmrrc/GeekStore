@@ -1,7 +1,7 @@
-const CACHE_NAME = "geek-store-v2";
+const CACHE_NAME = "geek-store-v3";
 const CORE_ASSETS = [
   "/",
-  "/Index.html",
+  "/index.html",
   "/products.html",
   "/about.html",
   "/contact.html",
@@ -56,7 +56,9 @@ async function networkFirst(request) {
   const cache = await caches.open(CACHE_NAME);
   try {
     const fresh = await fetch(request);
-    cache.put(request, fresh.clone());
+    if (fresh.ok) {
+      cache.put(request, fresh.clone());
+    }
     return fresh;
   } catch (error) {
     const cached = await cache.match(request);
@@ -72,7 +74,9 @@ async function staleWhileRevalidate(request) {
   const cached = await cache.match(request);
   const networkRequest = fetch(request)
     .then((response) => {
-      cache.put(request, response.clone());
+      if (response.ok) {
+        cache.put(request, response.clone());
+      }
       return response;
     })
     .catch(() => cached);

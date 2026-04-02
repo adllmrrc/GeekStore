@@ -12,7 +12,7 @@ const PRODUCT_CATALOG = {
     variantLabel: "Black",
     name: "R36S Handheld Console - Black",
     price: 49.99,
-    image: "Pictures/R36Sblack.avif",
+    image: "/assets/images/r36s-black.avif",
     page: "r36s.html",
     summary: "20,000 plus games, 3.5-inch IPS display, and an 8-hour battery.",
     aliases: [
@@ -29,7 +29,7 @@ const PRODUCT_CATALOG = {
     variantLabel: "White",
     name: "R36S Handheld Console - White",
     price: 49.99,
-    image: "Pictures/R36Sblanc.jpeg",
+    image: "/assets/images/r36s-white.jpeg",
     page: "r36s.html",
     summary: "The same pocket handheld in a lighter finish for clean setups.",
     aliases: [
@@ -46,7 +46,7 @@ const PRODUCT_CATALOG = {
     variantLabel: "Violet",
     name: "R36S Handheld Console - Violet",
     price: 49.99,
-    image: "Pictures/R36SVIolet.jpeg",
+    image: "/assets/images/r36s-violet.jpeg",
     page: "r36s.html",
     summary: "A bold shell option for players who want color without extra setup.",
     aliases: [
@@ -63,7 +63,7 @@ const PRODUCT_CATALOG = {
     variantLabel: "Sky Blue",
     name: "Mini Arcade Cabinet - Sky Blue",
     price: 79.99,
-    image: "Pictures/arcade 1.jpg",
+    image: "/assets/images/arcade-blue.jpg",
     page: "arcade.html",
     summary: "A compact desktop cabinet that instantly turns a shelf into a gaming corner.",
     aliases: [
@@ -79,7 +79,7 @@ const PRODUCT_CATALOG = {
     variantLabel: "Light Blue",
     name: "Mini Arcade Cabinet - Light Blue",
     price: 79.99,
-    image: "Pictures/arcade 2.jpg",
+    image: "/assets/images/arcade-light-blue.jpg",
     page: "arcade.html",
     summary: "A softer cabinet finish with the same all-in retro desk appeal.",
     aliases: [
@@ -95,7 +95,7 @@ const PRODUCT_CATALOG = {
     variantLabel: "Sun Yellow",
     name: "Mini Arcade Cabinet - Sun Yellow",
     price: 79.99,
-    image: "Pictures/arcade 3.jpg",
+    image: "/assets/images/arcade-yellow.jpg",
     page: "arcade.html",
     summary: "Bright cabinet styling for setups that want a stronger statement piece.",
     aliases: [
@@ -111,7 +111,7 @@ const PRODUCT_CATALOG = {
     variantLabel: "Wireless",
     name: "Bluetooth Retro Controller",
     price: 29.99,
-    image: "Pictures/Bleuthoot retro controller.jpg",
+    image: "/assets/images/retro-controller.jpg",
     page: "controller.html",
     summary: "A low-latency gamepad that feels familiar from the first button press.",
     aliases: [
@@ -127,7 +127,7 @@ const PRODUCT_CATALOG = {
     variantLabel: "Collector Edition",
     name: "Retro Keychain Mini Console",
     price: 19.99,
-    image: "Pictures/retro-keychain.avif",
+    image: "/assets/images/retro-keychain.avif",
     page: "keychain.html",
     summary: "A pocket-size collectible that adds nostalgic character to any everyday carry.",
     aliases: [
@@ -676,14 +676,17 @@ function refreshViews() {
 }
 
 function markActiveNav() {
-  const currentPath = window.location.pathname.split("/").pop() || "Index.html";
+  const currentPath = window.location.pathname.split("/").pop() || "index.html";
   const normalizedCurrent =
-    currentPath === "" || currentPath === "/" ? "Index.html" : currentPath;
+    currentPath === "" || currentPath === "/" ? "index.html" : currentPath.toLowerCase();
 
   document.querySelectorAll(".nav-link").forEach((link) => {
-    const href = link.getAttribute("href");
-    const isHome = normalizedCurrent === "Index.html" && href === "Index.html";
-    const matches = href === normalizedCurrent || (window.location.pathname === "/" && isHome);
+    const href = link.getAttribute("href") || "";
+    const normalizedHref =
+      href === "/" ? "index.html" : href.replace(/^\//, "").toLowerCase();
+    const matches =
+      normalizedHref === normalizedCurrent ||
+      (window.location.pathname === "/" && normalizedHref === "index.html");
     link.classList.toggle("is-active", Boolean(matches));
   });
 }
@@ -1222,7 +1225,7 @@ async function beginCheckout(button) {
   setStatus(status, "Preparing your secure checkout...", "");
 
   try {
-    const response = await fetch("/create-checkout-session", {
+    const response = await fetch("/api/create-checkout-session", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -1344,7 +1347,7 @@ function registerServiceWorker() {
     return;
   }
 
-  navigator.serviceWorker.register("service-worker.js").catch(() => {
+  navigator.serviceWorker.register("/service-worker.js").catch(() => {
     return null;
   });
 }

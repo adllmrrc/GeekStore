@@ -8,6 +8,7 @@ const nodemailer = require("nodemailer");
 const Stripe = require("stripe");
 
 const PORT = Number(process.env.PORT || 3001);
+const STATIC_DIR = path.join(__dirname, "public");
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY)
   : null;
@@ -108,6 +109,17 @@ const transporter =
       })
     : null;
 
+const LEGACY_ASSET_REDIRECTS = {
+  "/Pictures/R36Sblack.avif": "/assets/images/r36s-black.avif",
+  "/Pictures/R36Sblanc.jpeg": "/assets/images/r36s-white.jpeg",
+  "/Pictures/R36SVIolet.jpeg": "/assets/images/r36s-violet.jpeg",
+  "/Pictures/arcade 1.jpg": "/assets/images/arcade-blue.jpg",
+  "/Pictures/arcade 2.jpg": "/assets/images/arcade-light-blue.jpg",
+  "/Pictures/arcade 3.jpg": "/assets/images/arcade-yellow.jpg",
+  "/Pictures/Bleuthoot retro controller.jpg": "/assets/images/retro-controller.jpg",
+  "/Pictures/retro-keychain.avif": "/assets/images/retro-keychain.avif"
+};
+
 syncCatalogWithCsv();
 
 app.use(cors());
@@ -118,7 +130,98 @@ app.use((req, res, next) => {
   next();
 });
 
-app.post("/webhook", express.raw({ type: "application/json" }), async (req, res) => {
+app.post("/webhook", express.raw({ type: "application/json" }), handleStripeWebhook);
+app.post("/api/webhook", express.raw({ type: "application/json" }), handleStripeWebhook);
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+app.post("/create-checkout-session", createCheckoutSession);
+app.post("/api/create-checkout-session", createCheckoutSession);
+
+app.post("/api/contact", async (req, res) => {
+  const { name, email, subject, message } = req.body || {};
+  if (!name || !email || !subject || !message) {
+    return res.status(400).json({
+      error: "Please complete every contact field."
+    });
+  }
+
+  if (!transporter) {
+    return res.status(503).json({
+      error: "Contact email is not configured yet."
+    });
+  }
+
+  try {
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      replyTo: email,
+      to: process.env.CONTACT_EMAIL || process.env.EMAIL_USER,
+      subject: `[Geek Store] ${subject}`,
+      html: `
+        <h2>New contact request</h2>
+        <p><strong>Name:</strong> ${escapeHtml(name)}</p>
+        <p><strong>Email:</strong> ${escapeHtml(email)}</p>
+        <p><strong>Subject:</strong> ${escapeHtml(subject)}</p>
+        <p><strong>Message:</strong></p>
+        <p>${escapeHtml(message).replace(/\n/g, "<br>")}</p>
+      `
+    });
+
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(500).json({
+      error: "We could not send your message right now."
+    });
+  }
+});
+
+Object.entries(LEGACY_ASSET_REDIRECTS).forEach(([from, to]) => {
+  app.get(from, (req, res) => {
+    res.redirect(301, to);
+  });
+});
+
+app.get("/Index.html", (req, res) => {
+  res.redirect(301, "/");
+});
+
+app.use(
+  express.static(STATIC_DIR, {
+    maxAge: "1d",
+    setHeaders: (res, filePath) => {
+      const extension = path.extname(filePath).toLowerCase();
+      if (extension === ".html") {
+        res.setHeader("Cache-Control", "no-cache");
+        return;
+      }
+
+      if ([".css", ".js", ".svg"].includes(extension)) {
+        res.setHeader("Cache-Control", "public, max-age=86400");
+        return;
+      }
+
+      if ([".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif", ".ico"].includes(extension)) {
+        res.setHeader("Cache-Control", "public, max-age=604800");
+      }
+    }
+  })
+);
+
+app.get("/", (req, res) => {
+  res.sendFile(path.join(STATIC_DIR, "index.html"));
+});
+
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Geek Store server running at http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;
+
+async function handleStripeWebhook(req, res) {
   if (!stripe || !process.env.STRIPE_WEBHOOK_SECRET) {
     return res.status(503).json({
       error: "Stripe webhook support is not configured on this server."
@@ -143,12 +246,9 @@ app.post("/webhook", express.raw({ type: "application/json" }), async (req, res)
   }
 
   res.json({ received: true });
-});
+}
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-app.post("/create-checkout-session", async (req, res) => {
+async function createCheckoutSession(req, res) {
   if (!stripe) {
     return res.status(503).json({
       error: "Stripe is not configured yet. Add STRIPE_SECRET_KEY to continue."
@@ -191,75 +291,7 @@ app.post("/create-checkout-session", async (req, res) => {
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
-});
-
-app.post("/api/contact", async (req, res) => {
-  const { name, email, subject, message } = req.body || {};
-  if (!name || !email || !subject || !message) {
-    return res.status(400).json({
-      error: "Please complete every contact field."
-    });
-  }
-
-  if (!transporter) {
-    return res.status(503).json({
-      error: "Contact email is not configured yet."
-    });
-  }
-
-  try {
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      replyTo: email,
-      to: process.env.CONTACT_EMAIL || process.env.EMAIL_USER,
-      subject: `[Geek Store] ${subject}`,
-      html: `
-        <h2>New contact request</h2>
-        <p><strong>Name:</strong> ${escapeHtml(name)}</p>
-        <p><strong>Email:</strong> ${escapeHtml(email)}</p>
-        <p><strong>Subject:</strong> ${escapeHtml(subject)}</p>
-        <p><strong>Message:</strong></p>
-        <p>${escapeHtml(message).replace(/\n/g, "<br>")}</p>
-      `
-    });
-
-    res.json({ ok: true });
-  } catch (error) {
-    res.status(500).json({
-      error: "We could not send your message right now."
-    });
-  }
-});
-
-app.use(
-  express.static(path.join(__dirname), {
-    maxAge: "1d",
-    setHeaders: (res, filePath) => {
-      const extension = path.extname(filePath).toLowerCase();
-      if (extension === ".html") {
-        res.setHeader("Cache-Control", "no-cache");
-        return;
-      }
-
-      if ([".css", ".js", ".svg"].includes(extension)) {
-        res.setHeader("Cache-Control", "public, max-age=86400");
-        return;
-      }
-
-      if ([".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif", ".ico"].includes(extension)) {
-        res.setHeader("Cache-Control", "public, max-age=604800");
-      }
-    }
-  })
-);
-
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "Index.html"));
-});
-
-app.listen(PORT, () => {
-  console.log(`Geek Store server running at http://localhost:${PORT}`);
-});
+}
 
 function buildAliasLookup(catalog) {
   const lookup = {};
